@@ -526,9 +526,9 @@
                 const videoId = getYouTubeId(banner.acf.video_youtube_de_fondo);
                 if (!videoId) return;
 
-                const playerId = 'player-' + banner.id;
-                if (typeof YT !== 'undefined' && YT.Player) {
-                    youtubePlayers[playerId] = new YT.Player(playerId, {
+                const playerId = 'player-' + banner.id;// id del contenedor que youtube usara
+                if (typeof YT !== 'undefined' && YT.Player) {// asegura que la API de YTB este cargada
+                    youtubePlayers[playerId] = new YT.Player(playerId, {// crea la instancia del play de YTB
                         videoId,
                         playerVars: {
                             autoplay: 1, controls: 0, rel: 0, modestbranding: 1, loop: 1, playlist: videoId,
