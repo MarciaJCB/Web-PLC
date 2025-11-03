@@ -1,0 +1,359 @@
+<style>
+/* ---------------- Contenedor ---------------- */
+div[data-id="a9399d4"] {
+    display: flex;
+    align-items: center;
+}
+
+/* ---------------- Buscador principal ---------------- */
+.buscador-header {
+    display: flex;
+    align-items: center;
+    position: relative;
+}
+
+.buscador-header input.buscador {
+    border-radius: 32px 0 0 32px;
+    padding: .5rem 1.5rem;
+    width: 250px;
+    transition: .3s ease-in-out;
+    border: 0;
+    font-size: 16px;
+    height: 38px;
+    box-sizing: border-box;
+}
+.buscador-header input.buscador:focus,
+.buscador-header input.buscador.has-text {
+    width: 350px;
+    outline: 2px solid #359A30;
+}
+
+/* Botón */
+.buscador-header button.btn-buscar {
+    border-radius: 0 32px 32px 0;
+    background-color: #359A30;
+    border: 0;
+    outline: 0;
+    cursor: pointer;
+    font-size: 16px;
+    height: 38px;
+    padding: 0 1rem;
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    color: white;
+    transition: .3s;
+}
+.buscador-header button.btn-buscar:hover {
+    background: #D01214;
+}
+
+/* Loader */
+.buscador-header .loader {
+    width: 18px;
+    height: 18px;
+    min-width: 18px;
+    min-height: 18px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    display: none;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ---------------- Dropdown estilo vidrio ---------------- */
+.search-dropdown {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    width: 100%;
+    max-height: 420px;
+    overflow: auto;
+    background: hsla(211, 45%, 30%, 0.65);
+    backdrop-filter: blur(14px) brightness(1.05) saturate(0.8);
+    -webkit-backdrop-filter: blur(14px) brightness(1.05) saturate(0.8);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 12px;
+    z-index: 9999;
+    padding: .5rem;
+    box-sizing: border-box;
+    display: none;
+    color: #fff;
+    font-family: system-ui, sans-serif;
+}
+
+/* Grupos */
+.search-group {
+    margin-bottom: 0.8rem;
+}
+.search-group:last-child { margin-bottom: 0; }
+.search-group .group-title {
+    font-weight: 700;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: .6px;
+    margin: .4rem 0 .6rem 0;
+    color: #b6ffc2;
+    border-bottom: 1px solid rgba(255,255,255,0.15);
+    padding-bottom: .3rem;
+}
+
+/* Items */
+.search-item {
+    display: flex;
+    gap: .6rem;
+    padding: .45rem .6rem;
+    border-radius: 8px;
+    align-items: center;
+    cursor: pointer;
+    transition: background .15s, color .15s;
+}
+.search-item:hover,
+.search-item.active {
+    background: #359A30;
+}
+.search-item .title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #fff;
+}
+.search-item:hover .title {
+    color: #fff;
+}
+.search-item .meta {
+    font-size: 12px;
+    color: rgba(255,255,255,0.65);
+}
+
+/* Mensajes */
+.search-message {
+    padding: .6rem;
+    font-size: 13px;
+    color: rgba(255,255,255,0.85);
+    text-align: center;
+}
+
+/* ---------------- Responsivo ---------------- */
+@media screen and (max-width: 1320px){
+    .buscador-header input.buscador,
+    .buscador-header input.buscador:focus,
+    .buscador-header input.buscador.has-text { width: 200px; }
+}
+@media screen and (max-width: 1210px){
+    .buscador-header input.buscador { padding: 1rem; width: 180px; }
+    .buscador-header input.buscador,
+    .buscador-header button.btn-buscar { font-size: 14px; height: 38px; }
+}
+@media screen and (max-width: 1170px){
+    .buscador-header input.buscador { width: 150px; }
+}
+</style>
+
+<!-- Ejemplo de bloque buscador -->
+<div class="buscador-header">
+    
+  <!--Para buscar -->
+  <input type="text" class="buscador" placeholder="Buscar en el sitio web..." aria-label="Buscar en el sitio">
+  <!--Submit  con loader-->
+  <button class="btn-buscar" aria-label="Buscar">
+      <span>Buscar</span>
+      <span class="loader" aria-hidden="true"></span>
+  </button>
+  <!--Desplegable -->
+  <div class="search-dropdown" role="listbox" aria-label="Resultados de búsqueda"></div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  //  Se asegura que todo el DOM esté cargado antes de inicializar los buscadores
+  (function(){
+    const MIN_CHARS = 3;      // Número mínimo de caracteres para iniciar búsqueda
+    const DEBOUNCE_MS = 450;  // Tiempo de espera para "debounce" (evita hacer muchas peticiones)
+    const PER_PAGE = 20;      // Cantidad máxima de resultados por petición
+
+    // Selecciona todos los buscadores en la página
+    document.querySelectorAll('.buscador-header').forEach(header => {
+      const input = header.querySelector('.buscador');       // Input de texto
+      const btn = header.querySelector('.btn-buscar');       // Botón de búsqueda
+      const loader = header.querySelector('.loader');        // Icono de carga
+      const dropdown = header.querySelector('.search-dropdown'); // Contenedor de resultados
+
+      let debounceTimer = null;  // Temporizador para debounce
+      let lastQuery = '';        // Última búsqueda realizada
+      let controller = null;     // AbortController para cancelar peticiones previas
+      let currentItems = [];     // Resultados actuales
+      let focusedIndex = -1;     // Índice del item enfocado en el dropdown
+
+      // Obtiene la base de la URL del sitio (para construir la búsqueda)
+      function getWPBase() {
+        if (typeof window.getWPBase === 'function') return window.getWPBase();
+        return window.location.origin + '/nuevositio';
+      }
+
+      // Muestra u oculta el loader y deshabilita el botón mientras busca
+      function setLoading(isLoading){
+        loader.style.display = isLoading ? 'inline-block' : 'none';
+        btn.disabled = isLoading;
+      }
+
+      // Ejecuta la búsqueda después del debounce
+      function scheduleSearch(query){
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(()=> performSearch(query), DEBOUNCE_MS);
+      }
+
+      // Realiza la búsqueda al endpoint de WordPress
+      async function performSearch(query){
+        query = (query || '').trim();
+        if (query.length < MIN_CHARS) { hideDropdown(); return; }
+        if (query === lastQuery) return; // evita repetir la misma búsqueda
+        lastQuery = query;
+
+        if (controller) controller.abort();       // Cancela petición previa
+        controller = new AbortController();
+        setLoading(true);
+
+        const base = getWPBase().replace(/\/$/, '');
+        const endpoint = `${base}/wp-json/wp/v2/search?search=${encodeURIComponent(query)}&per_page=${PER_PAGE}&subtype[]=post&subtype[]=page`;
+
+        try {
+          const response = await fetch(endpoint, { signal: controller.signal });
+          if (!response.ok) throw new Error('Error en la petición');
+          const data = await response.json();
+          renderResults(data, query);  // Renderiza resultados
+        } catch (err) {
+          if (err.name === 'AbortError') return; // si fue cancelada la petición, no hacer nada
+          dropdown.innerHTML = `<div class="search-message">⚠️ Error al buscar, intenta de nuevo</div>`;
+          showDropdown();
+        } finally {
+          setLoading(false);
+        }
+      }
+
+      // Renderiza los resultados en el dropdown
+      function renderResults(items, query){
+        currentItems = items || [];
+        focusedIndex = -1;
+
+        if (!items || items.length === 0) {
+          dropdown.innerHTML = `<div class="search-message"> No se encontraron resultados para "<b>${escapeHtml(query)}</b>"</div>`;
+          showDropdown();
+          return;
+        }
+
+        // Agrupa resultados por tipo (post, page, attachment, etc.)
+        const groups = items.reduce((acc, it) => {
+          const t = it.subtype || it.type || 'other';
+          if (!acc[t]) acc[t] = [];
+          acc[t].push(it);
+          return acc;
+        }, {});
+
+        const typeTitles = { post: 'Entradas', page: 'Páginas', attachment: 'Medios', other: 'Otros' };
+        let html = '';
+
+        for (const [type, arr] of Object.entries(groups)) {
+          const title = typeTitles[type] || (type.charAt(0).toUpperCase() + type.slice(1));
+          html += `<div class="search-group" data-type="${type}">
+            <div class="group-title">${title} (${arr.length})</div>`;
+          arr.forEach(it=>{
+            const itemTitle = (typeof it.title === 'object' && it.title?.rendered) ? it.title.rendered : (it.title || 'Sin título');
+            const url = it.url || it.link || '#';
+            html += `<div class="search-item" role="option" data-url="${url}" tabindex="-1">
+                      <div class="title">${escapeHtml(itemTitle)}</div>
+                    </div>`;
+          });
+          html += `</div>`;
+        }
+
+        dropdown.innerHTML = html;
+
+        //  Agrega evento click a cada item para redirigir al link
+        dropdown.querySelectorAll('.search-item').forEach(el=>{
+          el.addEventListener('click', ()=>{ window.location.href = el.getAttribute('data-url'); });
+        });
+
+        showDropdown();
+      }
+
+      // Muestra el dropdown
+      function showDropdown(){ dropdown.style.display = 'block'; }
+
+      // Oculta y limpia el dropdown
+      function hideDropdown(){
+        dropdown.style.display = 'none';
+        dropdown.innerHTML = '';
+        currentItems = [];
+        focusedIndex = -1;
+      }
+
+      // Seguridad de escape de caracteres especiales en los títulos
+      function escapeHtml(str){
+        if (!str) return '';
+        return str.replace(/[&<>"'`=\/]/g, s =>
+          ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','/':'&#x2F;','`':'&#x60;','=':'&#x3D;'})[s]
+        );
+      }
+
+      // Cambia el foco entre items con teclado
+      function focusItemByIndex(index){
+        const items = dropdown.querySelectorAll('.search-item');
+        if (!items.length) return;
+        if (index < 0) index = 0;
+        if (index >= items.length) index = items.length - 1;
+        items.forEach(it => it.classList.remove('active'));
+        items[index].classList.add('active');
+        items[index].scrollIntoView({ block: 'nearest' });
+        focusedIndex = index;
+      }
+
+      // Maneja teclas del teclado (arriba, abajo, enter, escape)
+      function handleKeydown(e){
+        const items = dropdown.querySelectorAll('.search-item');
+        if (dropdown.style.display === 'none' || !items.length) return;
+
+        if (e.key === 'ArrowDown') { e.preventDefault(); focusItemByIndex((focusedIndex + 1) % items.length); }
+        else if (e.key === 'ArrowUp') { e.preventDefault(); focusItemByIndex((focusedIndex - 1 + items.length) % items.length); }
+        else if (e.key === 'Enter') {
+          e.preventDefault();
+          if (focusedIndex >= 0 && items[focusedIndex]) window.location.href = items[focusedIndex].getAttribute('data-url');
+          else ejecutarBusquedaWP(input.value);
+        }
+        else if (e.key === 'Escape') hideDropdown();
+      }
+
+      // Eventos principales
+      input.addEventListener('input', e=>{
+        const term = e.target.value;
+        if (term.length < MIN_CHARS) { lastQuery=''; hideDropdown(); if(controller) controller.abort(); setLoading(false); }
+        else scheduleSearch(term);
+        input.classList.toggle('has-text', term.trim().length > 0);
+      });
+
+      input.addEventListener('keydown', handleKeydown);
+      dropdown.addEventListener('keydown', handleKeydown);
+
+      btn.addEventListener('click', e=>{
+        e.preventDefault();
+        const items = dropdown.querySelectorAll('.search-item');
+        if (dropdown.style.display !== 'none' && items.length && focusedIndex >= 0) {
+          const url = items[focusedIndex].getAttribute('data-url');
+          if (url && url !== '#') { window.location.href = url; return; }
+        }
+        ejecutarBusquedaWP(input.value);
+      });
+
+      // Cierra el dropdown si se hace click fuera
+      document.addEventListener('click', e=>{ if (!header.contains(e.target)) hideDropdown(); });
+
+      // Ejecuta búsqueda normal (redirección a página de resultados)
+      function ejecutarBusquedaWP(texto){
+        texto = (texto || '').trim();
+        if (!texto) return;
+        window.location.href = getWPBase() + '?s=' + encodeURIComponent(texto);
+      }
+    });
+  })();
+});
+</script>

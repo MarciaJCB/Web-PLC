@@ -1,0 +1,323 @@
+<style>
+:root{
+  --caja-hamburger-w:35px;
+  --caja-hamburger-h:25px;
+  --color-rayitas:#3068A5;
+
+  --color-azul:#3068A5;
+  --color-naranja:#F9A825;      /* Mostaza */
+  --color-gris-claro:#f7f7f7;
+  --color-gris-oscuro:#333;
+  --color-azul-claro:hsla(212,80%,95%,1);
+  --color-verde:#359A30;
+  --color-rojo:#D01214;
+
+  /* Alto máximo del área scrollable (nav) */
+  --menu-max-height:40vh;
+}
+
+/* Hamburguesa */
+.hamburger{width:var(--caja-hamburger-w);height:var(--caja-hamburger-h);position:relative;transition:.3s ease-in-out;z-index:1000;cursor:pointer}
+.hamburger span{position:absolute;display:inline-block;width:100%;background:var(--color-rayitas);height:calc(var(--caja-hamburger-h)/10);transition:.3s ease-in-out}
+.hamburger span:nth-child(1){top:0}
+.hamburger span:nth-child(2){top:50%;transform:translateY(-50%);opacity:1}
+.hamburger span:nth-child(3){bottom:0}
+.hamburger.active span{background:#fff}
+.hamburger.active span:nth-child(1){top:50%;transform:translateY(-50%) rotate(45deg)}
+.hamburger.active span:nth-child(2){transform:translateY(-50%) scale(.5);opacity:0}
+.hamburger.active span:nth-child(3){bottom:50%;transform:translateY(50%) rotate(-45deg)}
+
+/* Contenedor lateral */
+.menu-desplegable-celular{transition:.3s ease-in-out;transform:translateX(-100%);background:#fff;position:fixed;top:0;left:0;bottom:0;right:70px;border-radius:0 24px 24px 0;z-index:900;box-shadow:2px 0 10px rgba(0,0,0,.2)}
+.menu-desplegable-celular.active{transform:translateX(0%)}
+.menu-desplegable-celular-overlay{transition:.3s ease-in-out;pointer-events:none;inset:0;position:fixed;z-index:800;background:rgba(0,0,0,0)}
+.menu-desplegable-celular-overlay.active{pointer-events:auto;background:rgba(0,0,0,.7)}
+
+/* Header */
+.menu-desplegable-header{background:var(--color-azul);padding:1rem;color:#fff}
+.menu-desplegable-header p{margin:0;font-size:22px;font-weight:700}
+
+/* Área scroll del nav */
+.menu-principal{max-height:var(--menu-max-height);overflow-y:auto}
+
+/* Lista principal */
+ul.menu-lista{list-style:none;margin:0;padding:0}
+ul.menu-lista>li{border-bottom:1px solid #ddd}
+ul.menu-lista>li>a,ul.menu-lista>li>div>a{display:block;padding:.75rem 1rem;text-decoration:none;color:var(--color-gris-oscuro);font-weight:500;background:#fff;transition:background .3s,color .3s}
+ul.menu-lista>li>a:hover,ul.menu-lista>li>div>a:hover{background:var(--color-naranja);color:#fff}
+
+/* ====== ESTADOS ACTIVOS ====== */
+
+/* Neutraliza falsos positivos de WP (no marcar si el <a> no tiene .current) */
+ul.menu-lista li.current-menu-item > a:not(.current),
+ul.submenu    li.current-menu-item > a:not(.current){
+  background:#fff !important;
+  color:var(--color-gris-oscuro) !important;
+  font-weight:500 !important;
+}
+
+/* Activo REAL: sólo cuando el <a> tiene .current */
+ul.menu-lista a.current,
+ul.submenu    a.current{
+  background:var(--color-naranja);
+  color:#fff !important;
+  font-weight:600;
+}
+
+/* Padre activo (fondo blanco) */
+ul.menu-lista li.current-menu-parent>.menu-item-wrapper>a{background:#fff;color:var(--color-gris-oscuro);font-weight:600}
+
+/* Flecha padre activo */
+ul.menu-lista li.current-menu-parent>.menu-item-wrapper .open-childrens{background:#fff}
+ul.menu-lista li.current-menu-parent>.menu-item-wrapper .open-childrens svg{fill:var(--color-gris-oscuro)}
+
+/* Items con hijos */
+ul.menu-lista>li>.menu-item-wrapper{display:flex;justify-content:space-between;align-items:stretch;background:#fff}
+ul.menu-lista>li>.menu-item-wrapper>a{flex:1;padding:.75rem 1rem;display:flex;align-items:center}
+
+/* Flechita */
+.open-childrens{display:flex;align-items:center;justify-content:center;width:50px;cursor:pointer;transition:background .3s,fill .3s}
+.open-childrens:hover{background:var(--color-naranja)}
+.open-childrens:hover svg{fill:#fff}
+.open-childrens svg{width:20px;transition:transform .3s,fill .3s;fill:var(--color-gris-oscuro)}
+.open-childrens.active svg{transform:rotate(180deg)}
+
+/* Padre abierto */
+li.menu-item.has-submenu.open>.menu-item-wrapper{background:#fff;font-weight:600}
+li.menu-item.has-submenu.open>.menu-item-wrapper .open-childrens{background:#fff}
+li.menu-item.has-submenu.open>.menu-item-wrapper .open-childrens svg{fill:var(--color-gris-oscuro)}
+
+/* Submenús (colapso) */
+ul.submenu{list-style:none;margin:0;padding:0;max-height:0;overflow:hidden;background:var(--color-azul-claro);transition:max-height .35s ease}
+ul.submenu li a{padding:.65rem 1rem;display:block;color:var(--color-gris-oscuro);background:var(--color-azul-claro);font-size:15px;transition:background .3s,color .3s}
+ul.submenu li a:hover{background:var(--color-naranja);color:#fff}
+ul.submenu.active{max-height:500px}
+
+/* Extras del header del menú */
+.buscador-header.buscador-header-celular{
+  background:var(--color-azul);
+  border-top:1px solid hsla(212,80%,70%,1);
+  padding:.5rem;display:flex;justify-content:center;align-items:center
+}
+.buscador-header.buscador-header-celular input,
+.buscador-header.buscador-header-celular input:focus,
+.buscador-header.buscador-header-celular input.has-text:focus,
+.buscador-header.buscador-header-celular input.has-text
+{
+    width:calc(100% - 70px);
+    
+}
+
+.buscador-header.buscador-header-celular button{min-width:70px}
+.buscador-header.buscador-header-celular button:hover{background:#D01214;outline:2px solid #D01214}
+.buscador-header.buscador-header-celular .search-dropdown {
+    width: calc(100% - 1rem);
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.redes-sociales-celular{display:flex;justify-content:center;background:var(--color-verde);padding:.5rem;gap:.4rem}
+.redes-sociales-celular a{padding:.4rem;background:inherit;line-height:1em;display:flex;justify-content:center;align-items:center;border-radius:50%;transition:.3s}
+.redes-sociales-celular a i{color:#fff;font-size:24px;line-height:1em}
+.redes-sociales-celular a:hover{background:var(--color-azul)}
+
+.botones-top-header.celular{display:grid;grid-template-columns:repeat(2,1fr);width:100%;background:var(--color-azul)}
+.botones-top-header.celular a{min-height:50px}
+
+.emergencia-contenedor{display:flex;justify-content:center;align-items:center;padding:1rem}
+.emergencia-contenedor a{background:var(--color-rojo);color:#fff;padding:.4rem 1rem;border-radius:2rem;transition:.3s}
+.emergencia-contenedor a:hover{transform:scale(1.05);background:#F42527}
+</style>
+
+<!-- Hamburguesa -->
+<div class="hamburger"><span></span><span></span><span></span></div>
+
+<!-- Menú -->
+<div class="menu-desplegable-celular">
+  <div class="menu-desplegable-header"><p>MENÚ</p></div>
+
+  <!-- buscador (usa solo class, no id) -->
+  <!--<div class="buscador-header buscador-header-celular">-->
+  <!--  <input type="text" class="buscador" placeholder="Buscar en el sitio web ...">-->
+  <!--  <button class="btn-buscar">Buscar</button>-->
+  <!--</div>-->
+  
+ 
+    <!-- Ejemplo de bloque buscador -->
+    <div class="buscador-header buscador-header-celular">
+      <input type="text" class="buscador" placeholder="Buscar en el sitio web..." aria-label="Buscar en el sitio">
+      <button class="btn-buscar" aria-label="Buscar">
+          <span>Buscar</span>
+          <span class="loader" aria-hidden="true"></span>
+      </button>
+      <div class="search-dropdown" role="listbox" aria-label="Resultados de búsqueda"></div>
+    </div>
+
+  [menu_maquetable]
+
+  <!-- redes -->
+  <div class="redes-sociales-celular" aria-label="btns-rs">
+    <a href="https://www.instagram.com/municipiopadrelascasas" aria-label="btns-ig"><i class="ri-instagram-line"></i></a>
+    <a href="https://www.facebook.com/municipiopadrelascasas" aria-label="btns-fb"><i class="ri-facebook-circle-line"></i></a>
+  </div>
+
+  <!-- accesos -->
+  <div class="botones-top-header celular">
+    <a href="https://padrelascasas.cl/newplc/organizaciones-comunitarias/">
+      <i class="ri-team-line"></i>
+      <div><span class="s-text">Ley 19.418</span><span>Organizaciones</span><span>Comunitarias</span></div>
+    </a>
+    <a href="https://padrelascasas.cl/newplc/organizaciones-comunitarias/">
+      <i class="ri-calendar-2-line"></i>
+      <div><span class="light">Plataforma</span><span>Ley del Lobby</span></div>
+    </a>
+    <a href="https://padrelascasas.cl/newplc/organizaciones-comunitarias/">
+      <i class="ri-information-2-line"></i>
+      <div><span class="light">Solicitar información</span><span>Ley de transparencia</span></div>
+    </a>
+    <a href="https://padrelascasas.cl/newplc/organizaciones-comunitarias/">
+      <i class="ri-article-line"></i>
+      <div><span class="light">Transparencia activa</span><span>Ley de transparencia</span></div>
+    </a>
+    <a href="https://padrelascasas.cl/nuevositio/concursos-publicos/">
+      <i class="ri-megaphone-fill"></i>
+      <div><span>Concursos</span><span>Publicos</span></div>
+    </a>
+  </div>
+
+  <!-- emergencia -->
+  <div class="emergencia-contenedor">
+    <a href="tel:452590400"><i class="ri-phone-line"></i><span>Emergencias <b>452 590 400</b></span></a>
+  </div>
+</div>
+
+<div class="menu-desplegable-celular-overlay"></div>
+
+<script>
+document.addEventListener("DOMContentLoaded", ()=>{
+  const hamburger = document.querySelector(".hamburger");
+  const menu = document.querySelector(".menu-desplegable-celular");
+  const overlay = document.querySelector(".menu-desplegable-celular-overlay");
+
+  /* ---------- Normalizador de rutas ---------- */
+  const normalizePath = (path) => path.replace(/\/$/, "").replace(/#$/, "");
+
+  /* ---------- Evita que los enlaces "#" cambien la URL ---------- */
+  document.querySelectorAll('a[href="#"]').forEach(a=>{
+    a.addEventListener("click", (e)=> e.preventDefault());
+  });
+
+  /* ---------- Marca current ---------- */
+  const markCurrent = ()=>{
+    const currentPath = normalizePath(window.location.pathname);
+    document.querySelectorAll("ul.menu-lista a, ul.submenu a").forEach(a=>{
+      a.classList.remove("current");
+      const href = a.getAttribute("href") || "";
+      if (!href || href === "#") return;
+      let u;
+      try { u = new URL(href, window.location.origin); } catch(e){ return; }
+      if (u.host !== window.location.host) return;
+      const aPath = normalizePath(u.pathname);
+      if (aPath === currentPath) a.classList.add("current");
+    });
+  };
+
+  /* ---------- Abre padres de current ---------- */
+  const restoreCurrentParents = ()=>{
+    document.querySelectorAll("ul.menu-lista a.current").forEach(a=>{
+      const href = a.getAttribute("href") || "";
+      if (href === "#" || href.trim()==="") return;
+      const li = a.closest("li.has-submenu");
+      if(!li) return;
+      const submenu = li.querySelector(".submenu");
+      const toggle  = li.querySelector(".open-childrens");
+      li.classList.add("open","current-menu-parent");
+      if (submenu){
+        submenu.classList.add("active");
+        submenu.style.maxHeight = submenu.scrollHeight + "px";
+      }
+      if (toggle) toggle.classList.add("active");
+    });
+  };
+
+  /* ---------- Abrir/cerrar modal ---------- */
+  hamburger?.addEventListener("click", ()=>{
+    hamburger.classList.toggle("active");
+    menu.classList.toggle("active");
+    overlay.classList.toggle("active");
+    if (menu.classList.contains("active")){
+      markCurrent();
+      restoreCurrentParents();
+    }
+  });
+  overlay?.addEventListener("click", ()=>{
+    hamburger.classList.remove("active");
+    menu.classList.remove("active");
+    overlay.classList.remove("active");
+  });
+
+  /* ---------- Toggler submenús ---------- */
+  document.querySelectorAll(".open-childrens").forEach(toggle=>{
+    toggle.addEventListener("click", ()=>{
+      const li = toggle.closest("li");
+      const submenu = li?.querySelector(".submenu");
+      if(!submenu) return;
+      const isOpen = li.classList.contains("open");
+      if (isOpen){
+        submenu.style.maxHeight = submenu.scrollHeight + "px";
+        requestAnimationFrame(()=>{
+          submenu.classList.remove("active");
+          submenu.style.maxHeight = "0";
+        });
+      } else {
+        submenu.classList.add("active");
+        submenu.style.maxHeight = submenu.scrollHeight + "px";
+      }
+      toggle.classList.toggle("active");
+      li.classList.toggle("open");
+      submenu.addEventListener("transitionend", ()=>{
+        if(!li.classList.contains("open")) submenu.style.maxHeight = null;
+      }, { once:true });
+    });
+  });
+
+  /* ---------- Detectar base de WordPress ---------- */
+  function getWPBase(){
+    // divide el pathname en partes
+    const parts = window.location.pathname.split("/").filter(Boolean);
+    // si está en raíz → devuelve "/"
+    if (parts.length === 0) return "/";
+    // si está en carpeta (ej: /nuevositio/...) → devuelve "/nuevositio/"
+    return "/" + parts[0] + "/";
+  }
+
+  /* ---------- Función de búsqueda en WP ---------- */
+//   function ejecutarBusquedaWP(texto){
+//     texto = texto.trim();
+//     if (!texto) return;
+//     const base = getWPBase();
+//     window.location.href = base + "?s=" + encodeURIComponent(texto);
+//   }
+
+  /* ---------- Buscadores múltiples (click + enter) ---------- */
+//   document.querySelectorAll(".buscador").forEach(input=>{
+//     const button = input.parentElement.querySelector(".btn-buscar");
+
+//     // Click en el botón
+//     button?.addEventListener("click", ()=> ejecutarBusquedaWP(input.value));
+
+//     // Enter en el input
+//     input.addEventListener("keydown", (e)=>{
+//       if (e.key === "Enter"){
+//         e.preventDefault();
+//         ejecutarBusquedaWP(input.value);
+//       }
+//     });
+//   });
+
+  /* ---------- Estado inicial ---------- */
+  markCurrent();
+  restoreCurrentParents();
+});
+</script>
+
